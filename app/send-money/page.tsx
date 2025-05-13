@@ -7,6 +7,7 @@ import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardNav } from "@/components/dashboard-nav"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import Cookies from "js-cookie"
 
 export default function SendMoney() {
   // Datos de ejemplo para contactos recientes

@@ -1,11 +1,104 @@
+"use client";
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+import { useState } from "react"
+import axios from "axios"
+import { useRouter } from 'next/navigation'
+import Cookies from "js-cookie"
+
+// Interceptor global para axios
+axios.interceptors.request.use((config) => {
+  const token = Cookies.get("token")
+  if (token) {
+    config.headers = config.headers || {}
+    config.headers["Authorization"] = `Bearer ${token}`
+  }
+  return config
+})
 
 export default function Home() {
+  const router = useRouter();
+  const [loginEmail, setLoginEmail] = useState("")
+  const [loginPassword, setLoginPassword] = useState("")
+  const [loginError, setLoginError] = useState("")
+
+  const [registerFirstName, setRegisterFirstName] = useState("")
+  const [registerLastName, setRegisterLastName] = useState("")
+  const [registerEmail, setRegisterEmail] = useState("")
+  const [registerPassword, setRegisterPassword] = useState("")
+  const [registerConfirmPassword, setRegisterConfirmPassword] = useState("")
+  const [registerError, setRegisterError] = useState("")
+  const [registerSuccess, setRegisterSuccess] = useState("")
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoginError("")
+    try {
+      const response = await axios.post("http://localhost:8080/api/auth/login", {
+        email: loginEmail,
+        password: loginPassword,
+      })
+      if (!response.data.token || !response.data.user) {
+        setLoginError("Respuesta inválida del servidor. Intenta de nuevo.")
+        return
+      }
+      Cookies.set("token", response.data.token, { expires: 1, secure: true })
+      localStorage.setItem("currentUser", JSON.stringify(response.data.user))
+      console.log("Login successful:", response.data)
+      router.push("/dashboard")
+    } catch (error: any) {
+      console.error("Login failed:", error)
+      if (error.response && error.response.data && error.response.data.message) {
+        setLoginError(error.response.data.message)
+      } else {
+        setLoginError("Error al iniciar sesión. Inténtalo de nuevo.")
+      }
+    }
+  }
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setRegisterError("")
+    setRegisterSuccess("")
+
+    if (registerPassword !== registerConfirmPassword) {
+      setRegisterError("Las contraseñas no coinciden.")
+      return
+    }
+
+    try {
+      const response = await axios.post("http://localhost:8080/api/auth/register", {
+        firstName: registerFirstName,
+        lastName: registerLastName,
+        email: registerEmail,
+        password: registerPassword,
+        confirmPassword: registerConfirmPassword,
+      })
+      console.log("Registration successful:", response.data)
+      setRegisterSuccess("¡Registro exitoso! Ahora puedes iniciar sesión.")
+      setRegisterFirstName("")
+      setRegisterLastName("")
+      setRegisterEmail("")
+      setRegisterPassword("")
+      setRegisterConfirmPassword("")
+    } catch (error: any) {
+      console.error("Registration failed:", error)
+      if (error.response && error.response.data && Array.isArray(error.response.data)) {
+        const messages = error.response.data.map((err: any) => err.message || "Error desconocido").join(", ");
+        setRegisterError(messages || "Error al registrar. Inténtalo de nuevo.")
+      } else if (error.response && error.response.data && error.response.data.message) {
+        setRegisterError(error.response.data.message)
+      } else {
+        setRegisterError("Error al registrar. Inténtalo de nuevo.")
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -46,25 +139,37 @@ export default function Home() {
                 <CardDescription>Ingresa tus credenciales para acceder a tu cuenta</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Correo electrónico</Label>
-                  <Input id="email" type="email" placeholder="ejemplo@correo.com" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Contraseña</Label>
-                    <Link href="#" className="text-sm text-emerald-600 hover:text-emerald-700">
-                      ¿Olvidaste tu contraseña?
-                    </Link>
+                <form onSubmit={handleLogin}>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">Correo electrónico</Label>
+                    <Input 
+                      id="login-email" 
+                      type="email" 
+                      placeholder="ejemplo@correo.com" 
+                      value={loginEmail} 
+                      onChange={(e) => setLoginEmail(e.target.value)} 
+                      required 
+                    />
                   </div>
-                  <Input id="password" type="password" />
-                </div>
+                  <div className="space-y-2 mt-4">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password">Contraseña</Label>
+                      <Link href="#" className="text-sm text-emerald-600 hover:text-emerald-700">
+                        ¿Olvidaste tu contraseña?
+                      </Link>
+                    </div>
+                    <Input 
+                      id="login-password" 
+                      type="password" 
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  {loginError && <p className="text-sm text-red-600 mt-2">{loginError}</p>}
+                  <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 mt-6">Iniciar Sesión</Button>
+                </form>
               </CardContent>
-              <CardFooter>
-                <Link href="/dashboard" className="w-full">
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700">Iniciar Sesión</Button>
-                </Link>
-              </CardFooter>
             </Card>
           </TabsContent>
           <TabsContent value="register">
@@ -74,32 +179,63 @@ export default function Home() {
                 <CardDescription>Ingresa tus datos para registrarte</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">Nombre</Label>
-                    <Input id="firstName" />
+                <form onSubmit={handleRegister}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="register-firstName">Nombre</Label>
+                      <Input 
+                        id="register-firstName" 
+                        value={registerFirstName}
+                        onChange={(e) => setRegisterFirstName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="register-lastName">Apellido</Label>
+                      <Input 
+                        id="register-lastName" 
+                        value={registerLastName}
+                        onChange={(e) => setRegisterLastName(e.target.value)}
+                        required
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Apellido</Label>
-                    <Input id="lastName" />
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="register-email">Correo electrónico</Label>
+                    <Input 
+                      id="register-email" 
+                      type="email" 
+                      placeholder="ejemplo@correo.com" 
+                      value={registerEmail}
+                      onChange={(e) => setRegisterEmail(e.target.value)}
+                      required
+                    />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Correo electrónico</Label>
-                  <Input id="email" type="email" placeholder="ejemplo@correo.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña</Label>
-                  <Input id="password" type="password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
-                  <Input id="confirmPassword" type="password" />
-                </div>
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="register-password">Contraseña</Label>
+                    <Input 
+                      id="register-password" 
+                      type="password" 
+                      value={registerPassword}
+                      onChange={(e) => setRegisterPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="register-confirmPassword">Confirmar contraseña</Label>
+                    <Input 
+                      id="register-confirmPassword" 
+                      type="password" 
+                      value={registerConfirmPassword}
+                      onChange={(e) => setRegisterConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  {registerError && <p className="text-sm text-red-600 mt-2">{registerError}</p>}
+                  {registerSuccess && <p className="text-sm text-green-600 mt-2">{registerSuccess}</p>}
+                  <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 mt-6">Crear cuenta</Button>
+                </form>
               </CardContent>
-              <CardFooter>
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700">Crear cuenta</Button>
-              </CardFooter>
             </Card>
           </TabsContent>
         </Tabs>

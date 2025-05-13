@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -9,8 +11,33 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import Cookies from "js-cookie"
+
+function useCurrentUser() {
+  const [user, setUser] = useState<any>(null)
+  useEffect(() => {
+    const stored = localStorage.getItem("currentUser")
+    if (stored && stored !== "undefined") {
+      try {
+        setUser(JSON.parse(stored))
+      } catch {
+        setUser(null)
+      }
+    }
+  }, [])
+  return user
+}
 
 export function DashboardHeader() {
+  const user = useCurrentUser()
+  const router = useRouter()
+  const handleLogout = () => {
+    localStorage.removeItem("currentUser")
+    Cookies.remove("token")
+    router.push("/")
+  }
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -68,8 +95,8 @@ export function DashboardHeader() {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">Carlos Rodríguez</p>
-                  <p className="text-xs leading-none text-gray-500">carlos.rodriguez@email.com</p>
+                  <p className="text-sm font-medium leading-none">{user ? `${user.firstName} ${user.lastName}` : ""}</p>
+                  <p className="text-xs leading-none text-gray-500">{user ? user.email : ""}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -109,8 +136,7 @@ export function DashboardHeader() {
                 </svg>
                 <span>Configuración</span>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="16"

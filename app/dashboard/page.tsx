@@ -1,13 +1,48 @@
+"use client";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardNav } from "@/components/dashboard-nav"
 import { TransactionItem } from "@/components/transaction-item"
+import { useEffect, useState } from "react"
+import Cookies from "js-cookie"
+
+function useCurrentUser() {
+  const [user, setUser] = useState<any>(null)
+  useEffect(() => {
+    const stored = localStorage.getItem("currentUser")
+    if (stored && stored !== "undefined") {
+      try {
+        setUser(JSON.parse(stored))
+      } catch {
+        setUser(null)
+      }
+    }
+  }, [])
+  return user
+}
 
 export default function Dashboard() {
+  const user = useCurrentUser()
+  const [balance, setBalance] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (user && user.id) {
+      const token = Cookies.get('token')
+      fetch(`http://localhost:8080/api/wallet/balance`, {
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      })
+        .then(res => res.json())
+        .then(data => setBalance(data.balance))
+        .catch(() => setBalance(null))
+    }
+  }, [user])
+
   // Datos de ejemplo para las transacciones recientes
-  const recentTransactions = [
+  const recentTransactions: { id: string; type: "incoming" | "outgoing"; amount: number; date: string; description: string; from?: string; to?: string }[] = [
     {
       id: "1",
       type: "incoming",
@@ -43,7 +78,9 @@ export default function Dashboard() {
             <Card className="border-none shadow-md">
               <CardHeader className="pb-2">
                 <CardDescription>Saldo disponible</CardDescription>
-                <CardTitle className="text-4xl font-bold">$1,250.75</CardTitle>
+                <CardTitle className="text-4xl font-bold">
+                  {balance !== null ? `$${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Cargando..."}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex space-x-3 mt-2">
@@ -203,8 +240,8 @@ export default function Dashboard() {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Carlos Rodríguez</p>
-                    <p className="text-xs text-gray-500">ID: WAL-12345678</p>
+                    <p className="text-sm font-medium">{user ? `${user.firstName} ${user.lastName}` : ""}</p>
+                    <p className="text-xs text-gray-500">ID: {user ? user.walletId : ""}</p>
                   </div>
                 </div>
                 <div className="flex items-center">
@@ -228,8 +265,8 @@ export default function Dashboard() {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm font-medium">carlos.rodriguez@email.com</p>
-                    <p className="text-xs text-gray-500">Email verificado</p>
+                    <p className="text-sm font-medium">{user ? user.email : ""}</p>
+                    <p className="text-xs text-gray-500">{user && user.isEmailVerified ? "Email verificado" : "Email no verificado"}</p>
                   </div>
                 </div>
               </CardContent>

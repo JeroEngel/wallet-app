@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardNav } from "@/components/dashboard-nav"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import Cookies from "js-cookie"
 
 export default function AddFunds() {
   return (

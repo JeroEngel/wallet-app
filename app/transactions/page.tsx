@@ -6,10 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import Cookies from "js-cookie"
 
 export default function Transactions() {
   // Datos de ejemplo para las transacciones
-  const transactions = [
+  const recentTransactions: { id: string; type: "incoming" | "outgoing"; amount: number; date: string; description: string; from?: string; to?: string }[] = [
     {
       id: "1",
       type: "incoming",
@@ -126,7 +127,7 @@ export default function Transactions() {
             <Card className="border-none shadow-md">
               <CardContent className="pt-6">
                 <div className="space-y-4">
-                  {transactions.map((transaction) => (
+                  {recentTransactions.map((transaction) => (
                     <TransactionItem key={transaction.id} transaction={transaction} detailed />
                   ))}
                 </div>
@@ -138,7 +139,7 @@ export default function Transactions() {
             <Card className="border-none shadow-md">
               <CardContent className="pt-6">
                 <div className="space-y-4">
-                  {transactions
+                  {recentTransactions
                     .filter((t) => t.type === "incoming")
                     .map((transaction) => (
                       <TransactionItem key={transaction.id} transaction={transaction} detailed />
@@ -152,7 +153,7 @@ export default function Transactions() {
             <Card className="border-none shadow-md">
               <CardContent className="pt-6">
                 <div className="space-y-4">
-                  {transactions
+                  {recentTransactions
                     .filter((t) => t.type === "outgoing")
                     .map((transaction) => (
                       <TransactionItem key={transaction.id} transaction={transaction} detailed />
